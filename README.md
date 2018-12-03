@@ -2,6 +2,12 @@
 
 Notify When Done (NWD) is a utility for triggering alerts when a process finishes. Kicking off a long-running compile? NWD can post a popup notification when it's done. Starting a job on a remote server? NWD can send you an e-mail when it's done. Want to run a custom script once another finishes? NWD can facilitate that, too.
 
+## Installation
+
+```
+pip3 install nwd
+```
+
 ## Examples
 
 Post a desktop notification (the default behavior) when the process with PID 1337 finishes:
