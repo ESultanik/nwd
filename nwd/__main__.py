@@ -1,8 +1,9 @@
 import argparse
 from functools import partial
 import os
-import sys
+import shlex
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -119,7 +120,7 @@ def main(argv = None):
             args.PID = pid
         else:
             # child process
-            p = subprocess.Popen(args.exec.split(' '), stdout=stdout_w, stderr=stderr_w)
+            p = subprocess.Popen(shlex.split(args.exec), stdout=stdout_w, stderr=stderr_w)
             sys.exit(p.wait())
     elif args.name is not None:
         matches = tuple(proc for proc in psutil.process_iter() if proc.name() == args.name and proc.pid != os.getpid())
