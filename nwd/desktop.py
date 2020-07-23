@@ -1,4 +1,3 @@
-from enum import Enum
 import sys
 import time
 
@@ -10,6 +9,7 @@ elif sys.platform == 'win32' or sys.platform == 'cygwin':
     from .windows import notify
 else:
     from .gtk import notify
+
 
 class DesktopNotifier(Notifier):
     def notify(self):

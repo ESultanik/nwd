@@ -2,7 +2,6 @@ def notify(title, subtitle, info_text, delay=0, sound=False, userInfo={}):
     # We need to import these here because they must be loaded from the child process after a fork
     import Foundation
     import objc
-    import AppKit
     NSUserNotification = objc.lookUpClass('NSUserNotification')
     NSUserNotificationCenter = objc.lookUpClass('NSUserNotificationCenter')
     notification = NSUserNotification.alloc().init()

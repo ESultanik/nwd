@@ -7,13 +7,21 @@ import socket
 import sys
 import time
 
+from typing import Optional, Tuple
+
 import keyring
 
 from .notify import Notifier
 
-KEYRING_NAME='NotifyWhenDone'
+KEYRING_NAME = 'NotifyWhenDone'
 
-def prompt(message, yes_options = ('y', 'yes'), no_options = ('n', 'no'), default=True):
+
+def prompt(
+        message: str,
+        yes_options: Tuple[str, ...] = ('y', 'yes'),
+        no_options: Tuple[str, ...] = ('n', 'no'),
+        default: bool = True
+) -> bool:
     if default:
         yes_options = yes_options + ('',)
     else:
@@ -25,14 +33,23 @@ def prompt(message, yes_options = ('y', 'yes'), no_options = ('n', 'no'), defaul
         elif ret in no_options:
             return False
 
-def save_email_credentials(sender_name, sender_email, sender_password, smtp_server, smtp_port=587):
+
+def save_email_credentials(sender_name: str, sender_email: str, sender_password: str, smtp_server: str,
+                           smtp_port: int = 587):
     keyring.set_password(KEYRING_NAME, 'sender_name', sender_name)
     keyring.set_password(KEYRING_NAME, 'sender_email', sender_email)
     keyring.set_password(KEYRING_NAME, 'sender_password', sender_password)
     keyring.set_password(KEYRING_NAME, 'smtp_server', smtp_server)
     keyring.set_password(KEYRING_NAME, 'smtp_port', str(smtp_port))
 
-def prompt_for_email_credentials(sender_name=None, sender_email=None, sender_password=None, smtp_server=None, smtp_port=None):
+
+def prompt_for_email_credentials(
+        sender_name: Optional[str] = None,
+        sender_email: Optional[str] = None,
+        sender_password: Optional[str] = None,
+        smtp_server: Optional[str] = None,
+        smtp_port: Optional[int] = None
+) -> Tuple[str, str, str, str, int]:
     if sender_name is None:
         sender_name = keyring.get_password(KEYRING_NAME, 'sender_name')
     if sender_name is None:
@@ -70,7 +87,8 @@ def prompt_for_email_credentials(sender_name=None, sender_email=None, sender_pas
     if smtp_server is None:
         if normalized_email.endswith('@gmail.com'):
             smtp_server = 'smtp.gmail.com'
-        elif normalized_email.endswith('@hotmail.com') or normalized_email.endswith('@live.com') or normalized_email.endswith('@outlook.com'):
+        elif normalized_email.endswith('@hotmail.com') or normalized_email.endswith('@live.com') \
+                or normalized_email.endswith('@outlook.com'):
             smtp_server = 'smtp-mail.outlook.com'
         else:
             smtp_server = keyring.get_password(KEYRING_NAME, 'smtp_server')
@@ -80,7 +98,9 @@ def prompt_for_email_credentials(sender_name=None, sender_email=None, sender_pas
     if new_smtp_server == '':
         new_smtp_server = smtp_server
     if new_smtp_server == 'smtp.gmail.com':
-        sys.stderr.write('Note: If you have two factor authentication enabled on your Gmail account, you may need to set up an app password for NWD at https://security.google.com/settings/security/apppasswords\n')
+        sys.stderr.write('Note: If you have two factor authentication enabled on your Gmail account, '
+                         'you may need to set up an app password for NWD at '
+                         'https://security.google.com/settings/security/apppasswords\n')
 
     if smtp_port is None:
         smtp_port = keyring.get_password(KEYRING_NAME, 'smtp_port')
@@ -92,7 +112,8 @@ def prompt_for_email_credentials(sender_name=None, sender_email=None, sender_pas
 
     return new_sender_name, new_sender_email, new_sender_password, new_smtp_server, int(new_smtp_port)
 
-def prompt_and_save_email_credentials(*args, **kwargs):
+
+def prompt_and_save_email_credentials(*args, **kwargs) -> Tuple[str, str, str, str, int]:
     prev_creds = get_keychain_credentials()
     creds = prompt_for_email_credentials(*args, **kwargs)
     if creds[1] is None:
@@ -101,7 +122,8 @@ def prompt_and_save_email_credentials(*args, **kwargs):
         save_email_credentials(*creds)
     return creds
 
-def get_keychain_credentials():
+
+def get_keychain_credentials() -> Tuple[str, str, str, str, int]:
     sender_email = keyring.get_password(KEYRING_NAME, 'sender_email')
     sender_name = keyring.get_password(KEYRING_NAME, 'sender_name')
     sender_password = keyring.get_password(KEYRING_NAME, 'sender_password')
@@ -111,22 +133,26 @@ def get_keychain_credentials():
         smtp_port = 587
     else:
         smtp_port = int(smtp_port)
-    return sender_name, sender_email, sender_password, smtp_server, smtp_port    
+    return sender_name, sender_email, sender_password, smtp_server, smtp_port
 
-def get_email_credentials(*args, **kwargs):
+
+def get_email_credentials(*args, **kwargs) -> Tuple[str, str, str, str, int]:
     creds = get_keychain_credentials()
     if creds[1] is None:
         return prompt_and_save_email_credentials(*args, **kwargs)
     else:
         return creds
 
-def get_default_recipient():
+
+def get_default_recipient() -> str:
     return keyring.get_password(KEYRING_NAME, 'default_recipient')
 
-def save_default_recipient(recipient_email):
+
+def save_default_recipient(recipient_email: str):
     keyring.set_password(KEYRING_NAME, 'default_recipient', recipient_email)
 
-def get_recipient(default_recipient=None):
+
+def get_recipient(default_recipient: Optional[str] = None) -> str:
     default = get_default_recipient()
     if default is None:
         default = default_recipient
@@ -144,10 +170,21 @@ def get_recipient(default_recipient=None):
             save_default_recipient(recipient)
     return recipient
 
+
 class EmailNotifier(Notifier):
-    def __init__(self, sender_name=None, sender_email=None, sender_password=None, smtp_server=None, smtp_port=None, *args, **kwargs):
+    def __init__(
+            self,
+            sender_name: str = None,
+            sender_email: str = None,
+            sender_password: str = None,
+            smtp_server: str = None,
+            smtp_port: int = None,
+            *args,
+            **kwargs
+    ):
         super().__init__(*args, **kwargs)
-        self.sender_name, self.sender_email, self.sender_password, self.smtp_server, self.smtp_port = get_email_credentials(sender_name, sender_email, sender_password, smtp_server, smtp_port)
+        self.sender_name, self.sender_email, self.sender_password, self.smtp_server, self.smtp_port = \
+            get_email_credentials(sender_name, sender_email, sender_password, smtp_server, smtp_port)
         self.to_email = get_recipient(self.sender_email)
 
     def notify(self):
@@ -161,7 +198,8 @@ class EmailNotifier(Notifier):
             attachment_msg = '\n\nProgram output logs are attached.'
         else:
             attachment_msg = ''
-        msg.attach(MIMEText(f"Process {self.pid} on {socket.gethostname()} finished at {time.ctime(self.end_time)}.\n\n`{' '.join(self.commandline)}`{attachment_msg}."))
+        msg.attach(MIMEText(f"Process {self.pid} on {socket.gethostname()} finished at "
+                            f"{time.ctime(self.end_time)}.\n\n`{' '.join(self.commandline)}`{attachment_msg}."))
 
         for logstream, name, mirror_to in ((self.stdout, 'stdout.txt'), (self.stderr, 'stderr.txt')):
             if logstream is not None:
