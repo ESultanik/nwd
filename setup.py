@@ -15,6 +15,9 @@ setup(
         'keyring',
         'psutil'
     ],
+    extras_require={
+        "dev": ["flake8"]
+    },
     entry_points={
         'console_scripts': [
             'nwd = nwd.__main__:main'
