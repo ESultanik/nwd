@@ -227,7 +227,7 @@ class EmailNotifier(Notifier):
         msg.attach(MIMEText(f"Process {self.pid} on {socket.gethostname()} finished at "
                             f"{time.ctime(self.end_time)}.\n\n`{' '.join(self.commandline)}`{attachment_msg}."))
 
-        for logstream, name, mirror_to in ((self.stdout, 'stdout.txt'), (self.stderr, 'stderr.txt')):
+        for logstream, name in ((self.stdout, 'stdout.txt'), (self.stderr, 'stderr.txt')):
             if logstream is not None:
                 with open(logstream.name, "rb") as f:
                     part = MIMEApplication(
