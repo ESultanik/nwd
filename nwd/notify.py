@@ -101,6 +101,10 @@ class Notifier:
     def exitcode(self) -> Optional[int]:
         return self._raw_status()['exitcode']
 
+    @exitcode.setter
+    def exitcode(self, new_exitcode: int):
+        self._save_status(exitcode=new_exitcode)
+
     def notify(self):
         raise NotImplementedError('Subclasses of Notifier must implement the notify() function')
 
@@ -137,13 +141,18 @@ class Notifier:
             self._save_status(
                 name=process.name(),
                 commandline=process.cmdline(),
-                started=process.create_time(),
-                finished=time.time()
+                started=process.create_time()
             )
-            self._save_status(
-                exitcode=process.wait(),
-                finished=time.time()
-            )
+            exitcode = process.wait()
+            if exitcode is not None:
+                self._save_status(
+                    exitcode=process.wait(),
+                    finished=time.time()
+                )
+            else:
+                self._save_status(
+                    finished=time.time()
+                )
         else:
             self._save_status(
                 finished=time.time()
@@ -154,7 +163,7 @@ class Notifier:
         sys.exit(os.EX_OK)
 
 
-def get_notifiers() -> Iterable[Notifier]:
+def get_notifiers(for_pid: Optional[int] = None) -> Iterable[Notifier]:
     for pid in os.listdir(PID_DIR):
         path = os.path.join(PID_DIR, pid)
         if not os.path.isfile(path):
@@ -165,4 +174,5 @@ def get_notifiers() -> Iterable[Notifier]:
             continue
         with open(path) as f:
             proc_pid: int = json.load(f)['pid']
-        yield Notifier(pid=proc_pid, daemon_pid=pid)
+        if for_pid is None or for_pid == proc_pid:
+            yield Notifier(pid=proc_pid, daemon_pid=pid)

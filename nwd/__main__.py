@@ -142,7 +142,11 @@ def main(argv: Optional[List[str]] = None):  # noqa: C901
         else:
             # child process
             p = subprocess.Popen(shlex.split(args.exec), stdout=stdout_w, stderr=stderr_w)
-            sys.exit(p.wait())
+            exitcode = p.wait()
+            for notifier in notify.get_notifiers(for_pid=os.getpid()):
+                if notifier.exitcode is None:
+                    notifier.exitcode = exitcode
+            sys.exit(exitcode)
     elif args.name is not None:
         matches = tuple(proc for proc in psutil.process_iter() if proc.name() == args.name and proc.pid != os.getpid())
         if not matches:
