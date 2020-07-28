@@ -60,6 +60,7 @@ class Notifier:
                 'pid': self.pid,
                 'name': f"Process {self.pid}",
                 'commandline': [],
+                'exitcode': None,
                 'started': None,
                 'finished': None,
                 'status': Status.NOT_STARTED.name
@@ -95,6 +96,10 @@ class Notifier:
     @property
     def commandline(self) -> List[str]:
         return self._raw_status()['commandline']
+
+    @property
+    def exitcode(self) -> Optional[int]:
+        return self._raw_status()['exitcode']
 
     def notify(self):
         raise NotImplementedError('Subclasses of Notifier must implement the notify() function')
@@ -135,7 +140,14 @@ class Notifier:
                 started=process.create_time(),
                 finished=time.time()
             )
-            process.wait()
+            self._save_status(
+                exitcode=process.wait(),
+                finished=time.time()
+            )
+        else:
+            self._save_status(
+                finished=time.time()
+            )
         self.status = Status.NOTIFYING
         self.notify()
         self.status = Status.NOTIFIED
