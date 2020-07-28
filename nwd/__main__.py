@@ -28,7 +28,7 @@ class RunNotifier(notify.Notifier):
         os.system(self.run_command)
 
 
-def main(argv: Optional[List[str]] = None):
+def main(argv: Optional[List[str]] = None):  # noqa: C901
     parser = argparse.ArgumentParser(description='Notify When Done (NWD). A tool for posting a desktop notification, '
                                                  'E-mail, or other alert when a process finishes.')
     parser.add_argument('PID', type=int, nargs='?', help='the process ID to monitor')
