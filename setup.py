@@ -6,7 +6,7 @@ setup(
     description='Notify When Done (NWD). A tool for posting a desktop notification, E-mail, or other alert when a process finishes.',
     url='https://github.com/ESultanik/nwd',
     author='Evan Sultanik',
-    version='2.0.0',
+    version='2.1.0',
     packages=find_packages(),
     python_requires='>=3.6',
     install_requires=[
