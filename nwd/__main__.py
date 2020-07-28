@@ -7,6 +7,8 @@ import sys
 import tempfile
 import time
 
+from typing import List, Optional
+
 import psutil
 
 from .daemon import spawn_daemon
@@ -16,6 +18,7 @@ from .tabular import draw_table
 from .term import TerminalNotifier
 from . import notify
 
+
 class RunNotifier(notify.Notifier):
     def __init__(self, run_command, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -24,22 +27,34 @@ class RunNotifier(notify.Notifier):
     def notify(self):
         os.system(self.run_command)
 
-def main(argv = None):
-    parser = argparse.ArgumentParser(description='Notify When Done (NWD). A tool for posting a desktop notification, E-mail, or other alert when a process finishes.')
+
+def main(argv: Optional[List[str]] = None):  # noqa: C901
+    parser = argparse.ArgumentParser(description='Notify When Done (NWD). A tool for posting a desktop notification, '
+                                                 'E-mail, or other alert when a process finishes.')
     parser.add_argument('PID', type=int, nargs='?', help='the process ID to monitor')
-    parser.add_argument('--name', '-n', type=str, default=None, help='specify the process by its name instead of its PID')
-    parser.add_argument('--exec', '-e', type=str, default=None, help='executes the given command creates a notification on its completion')
-    parser.add_argument('--block', '-b', action='store_true', default=False, help='block until the monitored process terminates')
-    parser.add_argument('--list', '-l', action='store_true', default=False, help='lists all pending and completed notifications')
-    parser.add_argument('--delete', '-d', action='store_true', default=False, help='cancels the pending notification for the process specified by its PID or by --name')
-    parser.add_argument('--cleanup', '-c', action='store_true', default=False, help='clean up stale output from --list')
-    parser.add_argument('--mode', '-m', choices=['desktop', 'email', 'term'], default=None, help='sets the notification method, where \'desktop\' (the default) is a desktop notification popup, \'email\' sends an e-mail, and \'term\' prints a message to the terminal')
+    parser.add_argument('--name', '-n', type=str, default=None,
+                        help='specify the process by its name instead of its PID')
+    parser.add_argument('--exec', '-e', type=str, default=None,
+                        help='executes the given command creates a notification on its completion')
+    parser.add_argument('--block', '-b', action='store_true', default=False,
+                        help='block until the monitored process terminates')
+    parser.add_argument('--list', '-l', action='store_true', default=False,
+                        help='lists all pending and completed notifications')
+    parser.add_argument('--delete', '-d', action='store_true', default=False,
+                        help='cancels the pending notification for the process specified by its PID or by --name')
+    parser.add_argument('--cleanup', '-c', action='store_true', default=False,
+                        help='clean up stale output from --list')
+    parser.add_argument('--mode', '-m', choices=['desktop', 'email', 'term'], default=None,
+                        help='sets the notification method, where \'desktop\' (the default) is a desktop notification '
+                             'popup, \'email\' sends an e-mail, and \'term\' prints a message to the terminal')
     parser.add_argument('--run', '-r', type=str, default=None, help='run the given command when the process completes')
-    parser.add_argument('--email-credentials', action='store_true', default=False, help='prompt for the e-mail credentials with which to send alerts and offer to save them to the system keychain')
+    parser.add_argument('--email-credentials', action='store_true', default=False,
+                        help='prompt for the e-mail credentials with which to send alerts and offer to save them to '
+                             'the system keychain')
 
     if argv is None:
         argv = sys.argv
-    
+
     args = parser.parse_args(argv[1:])
 
     num_run_args = sum(map(bool, (args.PID, args.name, args.exec)))
@@ -70,7 +85,10 @@ def main(argv = None):
             sys.exit(1)
 
     if args.email_credentials:
-        email_creds = prompt_and_save_email_credentials()
+        try:
+            email_creds = prompt_and_save_email_credentials()
+        except KeyboardInterrupt:
+            sys.exit(0)
     elif args.mode == 'email':
         email_creds = get_email_credentials()
 
@@ -84,7 +102,10 @@ def main(argv = None):
 
     if args.list:
         titles = ('PID', 'Name', 'Started', 'Ended', 'Status')
-        data = tuple((str(n.pid), n.name, time.ctime(n.start_time), time.ctime(n.end_time), n.status.name) for n in notify.get_notifiers())
+        data = tuple(
+            (str(n.pid), n.name, time.ctime(n.start_time), time.ctime(n.end_time), n.status.name)
+            for n in notify.get_notifiers()
+        )
         if not data:
             sys.stderr.write('There are no processes monitored\n')
         else:
@@ -112,7 +133,7 @@ def main(argv = None):
         Notifier = partial(EmailNotifier, *email_creds, stdout=stdout_w, stderr=stderr_w)
     elif args.mode == 'term':
         Notifier = TerminalNotifier
-    
+
     if args.exec:
         pid = spawn_daemon()
         if pid > 0:
@@ -121,7 +142,11 @@ def main(argv = None):
         else:
             # child process
             p = subprocess.Popen(shlex.split(args.exec), stdout=stdout_w, stderr=stderr_w)
-            sys.exit(p.wait())
+            exitcode = p.wait()
+            for notifier in notify.get_notifiers(for_pid=os.getpid()):
+                if notifier.exitcode is None:
+                    notifier.exitcode = exitcode
+            sys.exit(exitcode)
     elif args.name is not None:
         matches = tuple(proc for proc in psutil.process_iter() if proc.name() == args.name and proc.pid != os.getpid())
         if not matches:
@@ -145,6 +170,7 @@ def main(argv = None):
         sys.exit(1)
 
     sys.stderr.write(f"Started monitoring daemon for PID {args.PID} at PID {monitor_pid}\n")
-    
+
+
 if __name__ == '__main__':
     main()

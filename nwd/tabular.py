@@ -1,30 +1,37 @@
 import sys
 
-def draw_table(titles, data, out_stream=None, err_stream=None):
+from typing import Iterable, Optional, TextIO, Tuple
+
+
+def draw_table(
+        titles: Iterable[str],
+        data: Tuple[Tuple[str, ...], ...],
+        out_stream: Optional[TextIO] = None,
+        err_stream: Optional[TextIO] = None
+):
     if out_stream is None:
         out_stream = sys.stdout
     if err_stream is None:
         err_stream = sys.stderr
-    
+
     colwidths = tuple(max(len(row[col]) for row in (titles,) + data) for col in range(len(titles)))
-    rowwidth = sum(colwidths) + len(colwidths) - 1
-    sys.stderr.write('|'.join(title.ljust(colwidths[col]) for col, title in enumerate(titles)))
-    sys.stderr.write('\n')
-    sys.stderr.write('+'.join('-' * width for width in colwidths))
-    sys.stderr.write('\n')
-    sys.stderr.flush()
+    err_stream.write('|'.join(title.ljust(colwidths[col]) for col, title in enumerate(titles)))
+    err_stream.write('\n')
+    err_stream.write('+'.join('-' * width for width in colwidths))
+    err_stream.write('\n')
+    err_stream.flush()
     for row in data:
         for col, coldata in enumerate(row):
             assert len(coldata) <= colwidths[col]
             not_last = col < len(colwidths) - 1
-            sys.stdout.write(coldata)
+            out_stream.write(coldata)
             if not_last:
-                sys.stdout.write(', ')
-            sys.stdout.flush()
+                out_stream.write(', ')
+            out_stream.flush()
             if not_last:
-                sys.stderr.write('\b\b')
-                sys.stderr.write(' ' * (colwidths[col] - len(coldata)))
-                sys.stderr.write('|')
-                sys.stderr.flush()
-        sys.stdout.write('\n')
-        sys.stdout.flush()
+                err_stream.write('\b\b')
+                err_stream.write(' ' * (colwidths[col] - len(coldata)))
+                err_stream.write('|')
+                err_stream.flush()
+        out_stream.write('\n')
+        out_stream.flush()
