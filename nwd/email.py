@@ -220,12 +220,14 @@ class EmailNotifier(Notifier):
         msg['Subject'] = f"NWD: {self.name} finished!"
         msg['From'] = f"{self.sender_name} <{self.sender_email}>"
         msg['To'] = self.to_email
+        message = f"Process {self.pid} on {socket.gethostname()} finished at {time.ctime(self.end_time)}"
+        if self.exitcode is not None:
+            message = f"{message} with exit code {self.exitcode}"
+        message = f"{message}.\n\n`{' '.join(self.commandline)}`"
         if self.stdout or self.stderr:
-            attachment_msg = '\n\nProgram output logs are attached.'
-        else:
-            attachment_msg = ''
-        msg.attach(MIMEText(f"Process {self.pid} on {socket.gethostname()} finished at "
-                            f"{time.ctime(self.end_time)}.\n\n`{' '.join(self.commandline)}`{attachment_msg}."))
+            message = f"{message}\n\nProgram output logs are attached."
+        message = f"{message}\n\nAutomatically sent by NWD!\nhttps://github.com/esultanik/nwd\n"
+        msg.attach(MIMEText(message))
 
         for logstream, name in ((self.stdout, 'stdout.txt'), (self.stderr, 'stderr.txt')):
             if logstream is not None:

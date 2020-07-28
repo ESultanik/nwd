@@ -13,4 +13,7 @@ else:
 
 class DesktopNotifier(Notifier):
     def notify(self):
-        notify('nwd', f"{self.name} finished!", f"Process {self.pid} finished at {time.ctime(self.end_time)}")
+        message = f"Process {self.pid} finished at {time.ctime(self.end_time)}"
+        if self.exitcode is not None:
+            message = f"{message} with exit code {self.exitcode}."
+        notify('nwd', f"{self.name} finished!", message)
