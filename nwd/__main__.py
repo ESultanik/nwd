@@ -85,7 +85,10 @@ def main(argv: Optional[List[str]] = None):  # noqa: C901
             sys.exit(1)
 
     if args.email_credentials:
-        email_creds = prompt_and_save_email_credentials()
+        try:
+            email_creds = prompt_and_save_email_credentials()
+        except KeyboardInterrupt:
+            sys.exit(0)
     elif args.mode == 'email':
         email_creds = get_email_credentials()
 
